@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "335938301917",
+    "project_id": "mar-ventas-60eee",
+    "storage_bucket": "mar-ventas-60eee.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:335938301917:android:4346a1f9106467dcd41034",
+        "android_client_info": {
+          "package_name": "com.example.marventas"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCs-sAGIdPW6q_rtIgvMj9Lynes3oscNXg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
