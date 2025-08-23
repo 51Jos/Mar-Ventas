@@ -98,6 +98,7 @@ class _RegistrarCompraVistaState extends State<RegistrarCompraVista> {
       } else {
         // ignore: use_build_context_synchronously
         SnackBarExito.error(
+          // ignore: use_build_context_synchronously
           context,
           _controlador.error ?? 'Error al registrar',
         );

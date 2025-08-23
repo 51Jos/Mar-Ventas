@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../modelos/producto_modelo.dart';
 import '../modelos/compra_modelo.dart';
@@ -11,7 +13,9 @@ class ProductosControlador extends ChangeNotifier {
   bool _cargando = false;
   String? _error;
   String _busqueda = '';
-  
+  StreamSubscription? _productosSub;
+  StreamSubscription? _comprasSub;
+
   // Getters
   List<ProductoModelo> get productos => _busqueda.isEmpty
       ? _productos
@@ -21,21 +25,27 @@ class ProductosControlador extends ChangeNotifier {
   List<CompraModelo> get compras => _compras;
   bool get cargando => _cargando;
   String? get error => _error;
-  
+
   // Inicializar escucha de productos
   void inicializar() {
-    _servicio.obtenerProductos().listen((lista) {
-      _productos = lista;
-      notifyListeners();
-    });
+    _productosSub = _servicio.obtenerProductos().listen(
+      (lista) {
+        _productos = lista;
+        notifyListeners();
+      },
+      onError: (e) {
+        _error = e.toString();
+        notifyListeners();
+      },
+    );
   }
-  
+
   // Buscar productos
   void buscar(String termino) {
     _busqueda = termino;
     notifyListeners();
   }
-  
+
   // Crear producto
   Future<bool> crearProducto(ProductoModelo producto) async {
     _cargando = true;
@@ -54,7 +64,7 @@ class ProductosControlador extends ChangeNotifier {
       return false;
     }
   }
-  
+
   // Actualizar producto
   Future<bool> actualizarProducto(ProductoModelo producto) async {
     _cargando = true;
@@ -73,7 +83,7 @@ class ProductosControlador extends ChangeNotifier {
       return false;
     }
   }
-  
+
   // Eliminar producto
   Future<bool> eliminarProducto(String id) async {
     try {
@@ -85,7 +95,7 @@ class ProductosControlador extends ChangeNotifier {
       return false;
     }
   }
-  
+
   // Registrar compra
   Future<bool> registrarCompra(CompraModelo compra) async {
     _cargando = true;
@@ -104,15 +114,22 @@ class ProductosControlador extends ChangeNotifier {
       return false;
     }
   }
-  
+
   // Cargar historial de compras
   void cargarCompras({String? productoId}) {
-    _servicio.obtenerCompras(productoId: productoId).listen((lista) {
-      _compras = lista;
-      notifyListeners();
-    });
+    _comprasSub?.cancel(); // Cancela la suscripción anterior
+    _comprasSub = _servicio.obtenerCompras(productoId: productoId).listen(
+      (lista) {
+        _compras = lista;
+        notifyListeners();
+      },
+      onError: (e) {
+        _error = e.toString();
+        notifyListeners();
+      },
+    );
   }
-  
+
   // Obtener producto por ID
   ProductoModelo? obtenerProductoPorId(String id) {
     try {
@@ -121,5 +138,11 @@ class ProductosControlador extends ChangeNotifier {
       return null;
     }
   }
-  
+
+  @override
+  void dispose() {
+    _productosSub?.cancel();
+    _comprasSub?.cancel();
+    super.dispose();
+  }
 }

@@ -1,5 +1,3 @@
-/// Vista para registrar abono
-
 import 'package:flutter/material.dart';
 import '../../../compartido/componentes/campo_texto_personalizado.dart';
 import '../../../compartido/componentes/boton_personalizado.dart';

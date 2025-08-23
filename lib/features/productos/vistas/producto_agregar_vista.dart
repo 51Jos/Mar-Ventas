@@ -130,6 +130,7 @@ class _ProductoAgregarVistaState extends State<ProductoAgregarVista> {
             Container(
               padding: Dimensiones.paddingTodo,
               decoration: BoxDecoration(
+                // ignore: deprecated_member_use
                 color: Colors.green.withOpacity(0.1),
                 border: Border.all(color: Colors.green),
                 borderRadius: BorderRadius.circular(8),
