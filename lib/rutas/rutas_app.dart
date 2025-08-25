@@ -11,6 +11,9 @@ import 'package:marventas/features/productos/vistas/producto_agregar_vista.dart'
 import 'package:marventas/features/productos/vistas/producto_editar_vista.dart';
 import 'package:marventas/features/productos/vistas/productos_lista_vista.dart';
 import 'package:marventas/features/productos/vistas/registrar_compra_vista.dart';
+import 'package:marventas/features/reportes/vistas/reporte_deudas_vista.dart';
+import 'package:marventas/features/reportes/vistas/reporte_venta_vistas.dart';
+import 'package:marventas/features/reportes/vistas/reportes_dashboard_vista.dart';
 import 'package:marventas/features/ventas/modelos/venta_modelo.dart';
 import 'package:marventas/features/ventas/vistas/detalle_venta_vista.dart';
 import 'package:marventas/features/ventas/vistas/historial_ventas_vista.dart';
@@ -45,6 +48,9 @@ class RutasApp {
   static const String editarCliente = '/clientes/editar';
   static const String estadoCuenta = '/clientes/estado-cuenta';
   static const String registrarAbono = '/clientes/abono';
+  static const String reportesVentas = '/reportes/ventas';
+  static const String reportesInventario = '/reportes/inventario';
+  static const String reportesDeudas = '/reportes/deudas';
 
   // ==================== GENERADOR DE RUTAS ====================
   static Route<dynamic> generarRuta(RouteSettings settings) {
@@ -131,14 +137,24 @@ class RutasApp {
           builder: (_) => RegistrarAbonoVista(cliente: cliente as ClienteModelo),
         );
 
-      
+      // ==================== REPORTES ====================
 
       case reportes:
         return MaterialPageRoute(
-          builder: (_) => const Scaffold(
-            body: Center(child: Text('Reportes - Por implementar')),
-          ),
+          builder: (_) => const ReportesDashboardVista(),
         );
+
+       case reportesVentas:
+        return MaterialPageRoute(
+          builder: (_) => const ReporteVentasVista(),
+        );
+
+        case reportesDeudas:
+        return MaterialPageRoute(
+          builder: (_) => const ReporteDeudasVista(),
+        );
+
+      // ==================== PERFIL ====================
 
       case perfil:
         return MaterialPageRoute(
