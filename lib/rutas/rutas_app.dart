@@ -6,12 +6,14 @@ import 'package:marventas/features/clientes/vistas/cliente_editar_vista.dart';
 import 'package:marventas/features/clientes/vistas/clientes_lista_vista.dart';
 import 'package:marventas/features/clientes/vistas/estado_cuenta_vista.dart';
 import 'package:marventas/features/clientes/vistas/registrar_abono_vista.dart';
+import 'package:marventas/features/perfil/vistas/perfil_vista.dart';
 import 'package:marventas/features/productos/vistas/historial_compra_vista.dart';
 import 'package:marventas/features/productos/vistas/producto_agregar_vista.dart';
 import 'package:marventas/features/productos/vistas/producto_editar_vista.dart';
 import 'package:marventas/features/productos/vistas/productos_lista_vista.dart';
 import 'package:marventas/features/productos/vistas/registrar_compra_vista.dart';
 import 'package:marventas/features/reportes/vistas/reporte_deudas_vista.dart';
+import 'package:marventas/features/reportes/vistas/reporte_stock_vista.dart';
 import 'package:marventas/features/reportes/vistas/reporte_venta_vistas.dart';
 import 'package:marventas/features/reportes/vistas/reportes_dashboard_vista.dart';
 import 'package:marventas/features/ventas/modelos/venta_modelo.dart';
@@ -154,14 +156,15 @@ class RutasApp {
           builder: (_) => const ReporteDeudasVista(),
         );
 
+        case reportesInventario:
+        return MaterialPageRoute(
+          builder: (_) => const ReporteStockVista(),
+        );
+
       // ==================== PERFIL ====================
 
       case perfil:
-        return MaterialPageRoute(
-          builder: (_) => const Scaffold(
-            body: Center(child: Text('Perfil - Por implementar')),
-          ),
-        );
+        return MaterialPageRoute(builder: (_) => const PerfilVista());
 
       default:
         return MaterialPageRoute(
