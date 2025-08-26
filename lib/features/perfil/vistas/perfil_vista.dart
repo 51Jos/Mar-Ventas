@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:marventas/compartido/layout/layout_principal.dart';
 // ignore: depend_on_referenced_packages
 import 'package:provider/provider.dart';
 import '../../../compartido/componentes/widget_cargando.dart';
@@ -23,17 +24,17 @@ class PerfilVista extends StatefulWidget {
 class _PerfilVistaState extends State<PerfilVista> {
   bool _editando = false;
   bool _cambiandoPassword = false;
-  
+
   // Controllers para edición
   final _nombreController = TextEditingController();
   final _telefonoController = TextEditingController();
   final _direccionController = TextEditingController();
-  
+
   // Controllers para cambio de contraseña
   final _passwordActualController = TextEditingController();
   final _passwordNuevoController = TextEditingController();
   final _passwordConfirmarController = TextEditingController();
-  
+
   final _formKey = GlobalKey<FormState>();
   final _passwordFormKey = GlobalKey<FormState>();
 
@@ -77,7 +78,7 @@ class _PerfilVistaState extends State<PerfilVista> {
         telefono: _telefonoController.text.trim(),
         direccion: _direccionController.text.trim(),
       );
-      
+
       if (exito) {
         // ignore: use_build_context_synchronously
         SnackBarExito.mostrar(context, 'Perfil actualizado');
@@ -86,7 +87,10 @@ class _PerfilVistaState extends State<PerfilVista> {
         });
       } else {
         // ignore: use_build_context_synchronously
-        SnackBarExito.error(context, controlador.error ?? 'Error al actualizar');
+        SnackBarExito.error(
+          context,
+          controlador.error ?? 'Error al actualizar',
+        );
       }
     }
   }
@@ -97,19 +101,22 @@ class _PerfilVistaState extends State<PerfilVista> {
         SnackBarExito.error(context, 'Las contraseñas no coinciden');
         return;
       }
-      
+
       final exito = await controlador.cambiarPassword(
         _passwordActualController.text,
         _passwordNuevoController.text,
       );
-      
+
       if (exito) {
         // ignore: use_build_context_synchronously
         SnackBarExito.mostrar(context, 'Contraseña actualizada');
         _cancelarEdicion();
       } else {
         // ignore: use_build_context_synchronously
-        SnackBarExito.error(context, controlador.error ?? 'Error al cambiar contraseña');
+        SnackBarExito.error(
+          context,
+          controlador.error ?? 'Error al cambiar contraseña',
+        );
       }
     }
   }
@@ -123,318 +130,346 @@ class _PerfilVistaState extends State<PerfilVista> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => PerfilControlador()..inicializar(),
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Mi Perfil'),
-          actions: [
-            Consumer<PerfilControlador>(
-              builder: (context, controlador, child) {
-                if (!_editando && !_cambiandoPassword) {
-                  return IconButton(
-                    icon: const Icon(Icons.edit),
-                    onPressed: () => _iniciarEdicion(controlador),
-                    tooltip: 'Editar perfil',
-                  );
-                }
-                return const SizedBox();
-              },
-            ),
-          ],
-        ),
-        body: Consumer<PerfilControlador>(
-          builder: (context, controlador, child) {
-            if (controlador.cargando && controlador.usuario == null) {
-              return const WidgetCargando(mensaje: 'Cargando perfil...');
+@override
+Widget build(BuildContext context) {
+  return ChangeNotifierProvider(
+    create: (_) => PerfilControlador()..inicializar(),
+    child: LayoutPrincipal(
+      titulo: 'Mi Perfil',
+      indiceActual: 4,
+      // Acciones del AppBar controladas por el estado actual
+      acciones: [
+        Consumer<PerfilControlador>(
+          builder: (context, controlador, _) {
+            // Si está cambiando password: solo mostrar "Cancelar"
+            if (_cambiandoPassword) {
+              return IconButton(
+                icon: const Icon(Icons.close),
+                tooltip: 'Cancelar',
+                onPressed: _cancelarEdicion,
+              );
             }
-            
-            final usuario = controlador.usuario;
-            
-            if (usuario == null) {
-              return const Center(child: Text('Error al cargar perfil'));
-            }
-            
-            return SingleChildScrollView(
-              child: Column(
+
+            // Si está editando: mostrar "Guardar" y "Cancelar"
+            if (_editando) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Cabecera del perfil
-                  Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColores.primario, AppColores.secundario],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                  IconButton(
+                    icon: const Icon(Icons.check),
+                    tooltip: 'Guardar',
+                    onPressed: () => _guardarCambios(controlador),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Cancelar',
+                    onPressed: _cancelarEdicion,
+                  ),
+                ],
+              );
+            }
+
+            // Estado normal: mostrar "Editar perfil"
+            return IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () => _iniciarEdicion(controlador),
+              tooltip: 'Editar perfil',
+            );
+          },
+        ),
+      ],
+
+      // Contenido principal
+      child: Consumer<PerfilControlador>(
+        builder: (context, controlador, child) {
+          if (controlador.cargando && controlador.usuario == null) {
+            return const WidgetCargando(mensaje: 'Cargando perfil...');
+          }
+
+          final usuario = controlador.usuario;
+
+          if (usuario == null) {
+            return const Center(child: Text('Error al cargar perfil'));
+          }
+
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                // Cabecera del perfil
+                Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColores.primario, AppColores.secundario],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 20),
-                        // Avatar
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundColor: Colors.white,
-                          child: Text(
-                            usuario.nombre.isNotEmpty 
-                                ? usuario.nombre[0].toUpperCase()
-                                : 'U',
-                            style: TextStyle(
-                              fontSize: 40,
-                              fontWeight: FontWeight.bold,
-                              color: AppColores.primario,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        // Nombre
-                        Text(
-                          usuario.nombre,
-                          style: const TextStyle(
-                            fontSize: 24,
+                  ),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      // Avatar
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.white,
+                        child: Text(
+                          usuario.nombre.isNotEmpty
+                              ? usuario.nombre[0].toUpperCase()
+                              : 'U',
+                          style: TextStyle(
+                            fontSize: 40,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: AppColores.primario,
                           ),
                         ),
-                        // Email
-                        Text(
-                          usuario.email,
+                      ),
+                      const SizedBox(height: 16),
+                      // Nombre
+                      Text(
+                        usuario.nombre,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      // Email
+                      Text(
+                        usuario.email,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                        ),
+                      ),
+                      // Rol
+                      Container(
+                        margin: const EdgeInsets.only(top: 8, bottom: 20),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          usuario.rol.toUpperCase(),
                           style: const TextStyle(
-                            color: Colors.white70,
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
                           ),
-                        ),
-                        // Rol
-                        Container(
-                          margin: const EdgeInsets.only(top: 8, bottom: 20),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            // ignore: deprecated_member_use
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            usuario.rol.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),               
-                  // Estadísticas
-                                   
-                  // Formulario de edición
-                  if (_editando)
-                    Padding(
-                      padding: Dimensiones.paddingTodo,
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'EDITAR INFORMACIÓN',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: AppColores.textoSecundario,
-                              ),
-                            ),
-                            Dimensiones.esp16,
-                            CampoTextoPersonalizado(
-                              etiqueta: 'Nombre',
-                              controller: _nombreController,
-                              validador: (v) => Validadores.requerido(v),
-                              icono: Icons.person,
-                            ),
-                            Dimensiones.esp16,
-                            CampoTextoPersonalizado(
-                              etiqueta: 'Teléfono',
-                              controller: _telefonoController,
-                              validador: Validadores.telefono,
-                              tipoTeclado: TextInputType.phone,
-                              icono: Icons.phone,
-                            ),
-                            Dimensiones.esp16,
-                            CampoTextoPersonalizado(
-                              etiqueta: 'Dirección',
-                              controller: _direccionController,
-                              icono: Icons.location_on,
-                              maxLineas: 2,
-                            ),
-                            Dimensiones.esp24,
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: BotonPersonalizado(
-                                    texto: 'Guardar',
-                                    onPressed: () => _guardarCambios(controlador),
-                                    cargando: controlador.cargando,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: BotonPersonalizado(
-                                    texto: 'Cancelar',
-                                    onPressed: _cancelarEdicion,
-                                    secundario: true,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
                         ),
                       ),
-                    ),
-                  
-                  // Cambiar contraseña
-                  if (_cambiandoPassword)
-                    Padding(
-                      padding: Dimensiones.paddingTodo,
-                      child: Form(
-                        key: _passwordFormKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'CAMBIAR CONTRASEÑA',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: AppColores.textoSecundario,
-                              ),
-                            ),
-                            Dimensiones.esp16,
-                            CampoTextoPersonalizado(
-                              etiqueta: 'Contraseña Actual',
-                              controller: _passwordActualController,
-                              validador: (v) => Validadores.requerido(v),
-                              obscureText: true,
-                              icono: Icons.lock_outline,
-                            ),
-                            Dimensiones.esp16,
-                            CampoTextoPersonalizado(
-                              etiqueta: 'Nueva Contraseña',
-                              controller: _passwordNuevoController,
-                              validador: Validadores.password,
-                              obscureText: true,
-                              icono: Icons.lock,
-                            ),
-                            Dimensiones.esp16,
-                            CampoTextoPersonalizado(
-                              etiqueta: 'Confirmar Nueva Contraseña',
-                              controller: _passwordConfirmarController,
-                              validador: Validadores.password,
-                              obscureText: true,
-                              icono: Icons.lock,
-                            ),
-                            Dimensiones.esp24,
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: BotonPersonalizado(
-                                    texto: 'Cambiar',
-                                    onPressed: () => _cambiarPassword(controlador),
-                                    cargando: controlador.cargando,
-                                    color: AppColores.advertencia,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: BotonPersonalizado(
-                                    texto: 'Cancelar',
-                                    onPressed: _cancelarEdicion,
-                                    secundario: true,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  
-                  // Información del perfil (cuando no está editando)
-                  if (!_editando && !_cambiandoPassword)
-                    Padding(
-                      padding: Dimensiones.paddingTodo,
+                    ],
+                  ),
+                ),
+
+                // Formulario de edición
+                if (_editando)
+                  Padding(
+                    padding: Dimensiones.paddingTodo,
+                    child: Form(
+                      key: _formKey,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'INFORMACIÓN PERSONAL',
+                            'EDITAR INFORMACIÓN',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: AppColores.textoSecundario,
                             ),
                           ),
                           Dimensiones.esp16,
-                          _InfoItem(
-                            icono: Icons.email,
-                            titulo: 'Email',
-                            valor: usuario.email,
+                          CampoTextoPersonalizado(
+                            etiqueta: 'Nombre',
+                            controller: _nombreController,
+                            validador: (v) => Validadores.requerido(v),
+                            icono: Icons.person,
                           ),
-                          _InfoItem(
+                          Dimensiones.esp16,
+                          CampoTextoPersonalizado(
+                            etiqueta: 'Teléfono',
+                            controller: _telefonoController,
+                            validador: Validadores.telefono,
+                            tipoTeclado: TextInputType.phone,
                             icono: Icons.phone,
-                            titulo: 'Teléfono',
-                            valor: usuario.telefono ?? 'No registrado',
                           ),
-                          _InfoItem(
+                          Dimensiones.esp16,
+                          CampoTextoPersonalizado(
+                            etiqueta: 'Dirección',
+                            controller: _direccionController,
                             icono: Icons.location_on,
-                            titulo: 'Dirección',
-                            valor: usuario.direccion ?? 'No registrada',
+                            maxLineas: 2,
                           ),
-                          _InfoItem(
-                            icono: Icons.calendar_today,
-                            titulo: 'Miembro desde',
-                            valor: FormateadorFecha.fechaCompleta(usuario.fechaRegistro),
-                          ),
-                          
-                          Dimensiones.esp32,
-                          
-                          // Botones de acción
-                          BotonPersonalizado(
-                            texto: 'Cambiar Contraseña',
-                            onPressed: () {
-                              setState(() {
-                                _cambiandoPassword = true;
-                              });
-                            },
-                            icono: Icons.lock,
-                            secundario: true,
-                          ),
-                          Dimensiones.esp8,
-                          BotonPersonalizado(
-                            texto: 'Cerrar Sesión',
-                            onPressed: () => _cerrarSesion(controlador),
-                            icono: Icons.logout,
-                            color: AppColores.error,
+                          Dimensiones.esp24,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: BotonPersonalizado(
+                                  texto: 'Guardar',
+                                  onPressed: () => _guardarCambios(controlador),
+                                  cargando: controlador.cargando,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: BotonPersonalizado(
+                                  texto: 'Cancelar',
+                                  onPressed: _cancelarEdicion,
+                                  secundario: true,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                ],
-              ),
-            );
-          },
-        ),
+                  ),
+
+                // Cambiar contraseña
+                if (_cambiandoPassword)
+                  Padding(
+                    padding: Dimensiones.paddingTodo,
+                    child: Form(
+                      key: _passwordFormKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'CAMBIAR CONTRASEÑA',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppColores.textoSecundario,
+                            ),
+                          ),
+                          Dimensiones.esp16,
+                          CampoTextoPersonalizado(
+                            etiqueta: 'Contraseña Actual',
+                            controller: _passwordActualController,
+                            validador: (v) => Validadores.requerido(v),
+                            obscureText: true,
+                            icono: Icons.lock_outline,
+                          ),
+                          Dimensiones.esp16,
+                          CampoTextoPersonalizado(
+                            etiqueta: 'Nueva Contraseña',
+                            controller: _passwordNuevoController,
+                            validador: Validadores.password,
+                            obscureText: true,
+                            icono: Icons.lock,
+                          ),
+                          Dimensiones.esp16,
+                          CampoTextoPersonalizado(
+                            etiqueta: 'Confirmar Nueva Contraseña',
+                            controller: _passwordConfirmarController,
+                            validador: Validadores.password,
+                            obscureText: true,
+                            icono: Icons.lock,
+                          ),
+                          Dimensiones.esp24,
+                          Row(
+                            children: [
+                              Expanded(
+                                child: BotonPersonalizado(
+                                  texto: 'Cambiar',
+                                  onPressed: () => _cambiarPassword(controlador),
+                                  cargando: controlador.cargando,
+                                  color: AppColores.advertencia,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: BotonPersonalizado(
+                                  texto: 'Cancelar',
+                                  onPressed: _cancelarEdicion,
+                                  secundario: true,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                // Información del perfil (cuando no está editando ni cambiando password)
+                if (!_editando && !_cambiandoPassword)
+                  Padding(
+                    padding: Dimensiones.paddingTodo,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'INFORMACIÓN PERSONAL',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColores.textoSecundario,
+                          ),
+                        ),
+                        Dimensiones.esp16,
+                        _InfoItem(
+                          icono: Icons.email,
+                          titulo: 'Email',
+                          valor: usuario.email,
+                        ),
+                        _InfoItem(
+                          icono: Icons.phone,
+                          titulo: 'Teléfono',
+                          valor: usuario.telefono ?? 'No registrado',
+                        ),
+                        _InfoItem(
+                          icono: Icons.location_on,
+                          titulo: 'Dirección',
+                          valor: usuario.direccion ?? 'No registrada',
+                        ),
+                        _InfoItem(
+                          icono: Icons.calendar_today,
+                          titulo: 'Miembro desde',
+                          valor: FormateadorFecha.fechaCompleta(
+                            usuario.fechaRegistro,
+                          ),
+                        ),
+                        Dimensiones.esp32,
+
+                        // Botones de acción
+                        BotonPersonalizado(
+                          texto: 'Cambiar Contraseña',
+                          onPressed: () {
+                            setState(() {
+                              _cambiandoPassword = true;
+                            });
+                          },
+                          icono: Icons.lock,
+                          secundario: true,
+                        ),
+                        Dimensiones.esp8,
+                        BotonPersonalizado(
+                          texto: 'Cerrar Sesión',
+                          onPressed: () => _cerrarSesion(controlador),
+                          icono: Icons.logout,
+                          color: AppColores.error,
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          );
+        },
       ),
-    );
-  }
+    ),
+  );
 }
+}
+
 
 // Widget de información
 class _InfoItem extends StatelessWidget {
   final IconData icono;
   final String titulo;
   final String valor;
-  
+
   const _InfoItem({
     required this.icono,
     required this.titulo,
