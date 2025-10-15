@@ -117,14 +117,21 @@ class ProductosControlador extends ChangeNotifier {
 
   // Cargar historial de compras
   void cargarCompras({String? productoId}) {
+    _cargando = true;
+    notifyListeners();
+
     _comprasSub?.cancel(); // Cancela la suscripción anterior
     _comprasSub = _servicio.obtenerCompras(productoId: productoId).listen(
       (lista) {
+        print('📦 Compras recibidas: ${lista.length} para producto: $productoId');
         _compras = lista;
+        _cargando = false;
         notifyListeners();
       },
       onError: (e) {
+        print('❌ Error al cargar compras: $e');
         _error = e.toString();
+        _cargando = false;
         notifyListeners();
       },
     );

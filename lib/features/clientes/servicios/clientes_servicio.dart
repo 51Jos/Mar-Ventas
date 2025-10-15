@@ -72,28 +72,54 @@ class ClientesServicio {
     );
   }
 
+  /// Obtener cliente por ID en tiempo real (Stream)
+  Stream<ClienteModelo?> obtenerClienteStream(String id) {
+    return _clientes.doc(id).snapshots().map((doc) {
+      if (!doc.exists) return null;
+      return ClienteModelo.fromMap(
+        doc.data() as Map<String, dynamic>,
+        doc.id,
+      );
+    });
+  }
+
   // ==================== ABONOS ====================
   
   /// Registrar abono y actualizar deuda
   Future<void> registrarAbono(AbonoModelo abono) async {
+    // ignore: avoid_print
+    print('💰 Registrando abono para cliente: ${abono.clienteId}');
+    // ignore: avoid_print
+    print('💵 Monto del abono: ${abono.monto}');
+
     await _db.runTransaction((transaction) async {
       // Obtener cliente actual
       final clienteDoc = await transaction.get(_clientes.doc(abono.clienteId));
-      
+
       if (!clienteDoc.exists) {
         throw Exception('Cliente no encontrado');
       }
-      
-      final deudaActual = (clienteDoc.data() as Map<String, dynamic>)['deudaTotal'] ?? 0.0;
+
+      final clienteData = clienteDoc.data() as Map<String, dynamic>;
+      final deudaActual = (clienteData['deudaTotal'] ?? 0.0).toDouble();
       final nuevaDeuda = deudaActual - abono.monto;
-      
+
+      // ignore: avoid_print
+      print('💳 Deuda actual: $deudaActual');
+      // ignore: avoid_print
+      print('➖ Nueva deuda: $nuevaDeuda');
+
       // Actualizar deuda del cliente
       transaction.update(_clientes.doc(abono.clienteId), {
-        'deudaTotal': nuevaDeuda > 0 ? nuevaDeuda : 0,
+        'deudaTotal': nuevaDeuda > 0 ? nuevaDeuda : 0.0,
+        'fechaActualizacion': DateTime.now().toIso8601String(),
       });
-      
+
       // Registrar abono
       transaction.set(_abonos.doc(), abono.toMap());
+
+      // ignore: avoid_print
+      print('✅ Abono registrado y deuda actualizada exitosamente');
     });
   }
 
@@ -101,15 +127,19 @@ class ClientesServicio {
   Stream<List<AbonoModelo>> obtenerAbonosCliente(String clienteId) {
     return _abonos
         .where('clienteId', isEqualTo: clienteId)
-        .orderBy('fecha', descending: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
+      final abonos = snapshot.docs.map((doc) {
         return AbonoModelo.fromMap(
           doc.data() as Map<String, dynamic>,
           doc.id,
         );
       }).toList();
+
+      // Ordenar en memoria por fecha descendente
+      abonos.sort((a, b) => b.fecha.compareTo(a.fecha));
+
+      return abonos;
     });
   }
 

@@ -154,6 +154,9 @@ class _ProductoTarjeta extends StatelessWidget {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ListTile(
+        onTap: () {
+          RutasApp.ir(context, RutasApp.detalleProducto, args: producto);
+        },
         leading: CircleAvatar(
           backgroundColor: hayStock ? AppColores.exito : AppColores.error,
           child: Icon(Icons.set_meal, color: Colors.white),

@@ -7,6 +7,7 @@ import 'package:marventas/features/clientes/vistas/clientes_lista_vista.dart';
 import 'package:marventas/features/clientes/vistas/estado_cuenta_vista.dart';
 import 'package:marventas/features/clientes/vistas/registrar_abono_vista.dart';
 import 'package:marventas/features/perfil/vistas/perfil_vista.dart';
+import 'package:marventas/features/productos/vistas/detalle_producto_vista.dart';
 import 'package:marventas/features/productos/vistas/historial_compra_vista.dart';
 import 'package:marventas/features/productos/vistas/producto_agregar_vista.dart';
 import 'package:marventas/features/productos/vistas/producto_editar_vista.dart';
@@ -41,6 +42,7 @@ class RutasApp {
   // Rutas secundarias
   static const String agregarProducto = '/productos/agregar';
   static const String editarProducto = '/productos/editar';
+  static const String detalleProducto = '/productos/detalle';
   static const String registrarCompra = '/productos/compra';
   static const String historialCompras = '/productos/historial';
   static const String nuevaVenta = '/ventas/nueva';
@@ -79,6 +81,12 @@ class RutasApp {
         final producto = settings.arguments;
         return MaterialPageRoute(
           builder: (_) => ProductoEditarVista(producto: producto as dynamic),
+        );
+
+      case detalleProducto:
+        final producto = settings.arguments;
+        return MaterialPageRoute(
+          builder: (_) => DetalleProductoVista(producto: producto as dynamic),
         );
 
       case registrarCompra:

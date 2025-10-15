@@ -83,22 +83,31 @@ class ProductosServicio {
   /// Obtener historial de compras
   Stream<List<CompraModelo>> obtenerCompras({String? productoId}) {
     Query query = _compras;
-    
+
     if (productoId != null) {
+      // ignore: avoid_print
+      print('🔍 Buscando compras para productoId: $productoId');
       query = query.where('productoId', isEqualTo: productoId);
     }
-    
+
     return query
-        .orderBy('fecha', descending: true)
-        .limit(50)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return CompraModelo.fromMap(
-          doc.data() as Map<String, dynamic>,
-          doc.id,
-        );
+      // ignore: avoid_print
+      print('📊 Documentos encontrados: ${snapshot.docs.length}');
+
+      final compras = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        // ignore: avoid_print
+        print('📄 Doc ID: ${doc.id}, productoId: ${data['productoId']}, producto: ${data['productoNombre']}');
+        return CompraModelo.fromMap(data, doc.id);
       }).toList();
+
+      // Ordenar en memoria por fecha descendente
+      compras.sort((a, b) => b.fecha.compareTo(a.fecha));
+
+      // Limitar a 50 más recientes
+      return compras.take(50).toList();
     });
   }
 

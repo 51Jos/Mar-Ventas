@@ -9,10 +9,12 @@ import '../../../rutas/rutas_app.dart';
 import '../modelos/cliente_modelo.dart';
 import '../modelos/abono_modelo.dart';
 import '../servicios/clientes_servicio.dart';
+import '../../../compartido/servicios/whatsapp_servicio.dart';
+import '../../../compartido/componentes/snackbar_exito.dart';
 
 class EstadoCuentaVista extends StatelessWidget {
   final ClienteModelo cliente;
-  
+
   const EstadoCuentaVista({
     super.key,
     required this.cliente,
@@ -20,19 +22,62 @@ class EstadoCuentaVista extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Estado de Cuenta'),
-        actions: [
-          if (cliente.tieneDeuda)
-            IconButton(
-              icon: const Icon(Icons.payment),
-              onPressed: () => RutasApp.ir(context, RutasApp.registrarAbono, args: cliente),
-              tooltip: 'Registrar Abono',
-            ),
-        ],
-      ),
-      body: Column(
+    return StreamBuilder<ClienteModelo?>(
+      stream: ClientesServicio().obtenerClienteStream(cliente.id!),
+      initialData: cliente,
+      builder: (context, clienteSnapshot) {
+        final clienteActual = clienteSnapshot.data ?? cliente;
+
+        return StreamBuilder<List<AbonoModelo>>(
+          stream: ClientesServicio().obtenerAbonosCliente(clienteActual.id!),
+          builder: (context, abonosSnapshot) {
+            final abonos = abonosSnapshot.data ?? [];
+
+            return Scaffold(
+              appBar: AppBar(
+                title: const Text('Estado de Cuenta'),
+                actions: [
+                  // Botón WhatsApp
+                  IconButton(
+                    icon: const Icon(Icons.chat),
+                    color: Colors.green,
+                    onPressed: () async {
+                      if (!WhatsAppServicio.validarTelefono(clienteActual.telefono)) {
+                        SnackBarExito.advertencia(
+                          context,
+                          'El cliente no tiene un número de teléfono válido',
+                        );
+                        return;
+                      }
+
+                      final exito = await WhatsAppServicio.enviarEstadoCuenta(
+                        cliente: clienteActual,
+                        abonos: abonos,
+                        nombreNegocio: 'Marventas',
+                      );
+
+                      if (!exito && context.mounted) {
+                        SnackBarExito.error(
+                          context,
+                          'No se pudo abrir WhatsApp',
+                        );
+                      }
+                    },
+                    tooltip: 'Enviar por WhatsApp',
+                  ),
+                  if (clienteActual.tieneDeuda)
+                    IconButton(
+                      icon: const Icon(Icons.payment),
+                      onPressed: () => RutasApp.ir(
+                        context,
+                        RutasApp.registrarAbono,
+                        args: clienteActual,
+                      ),
+                      tooltip: 'Registrar Abono',
+                    ),
+                ],
+              ),
+          body: Column(
         children: [
           // Info del cliente
           Container(
@@ -45,7 +90,7 @@ class EstadoCuentaVista extends StatelessWidget {
                   radius: 40,
                   backgroundColor: Colors.white,
                   child: Text(
-                    cliente.nombre.substring(0, 1).toUpperCase(),
+                    clienteActual.nombre.substring(0, 1).toUpperCase(),
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -55,16 +100,16 @@ class EstadoCuentaVista extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  cliente.nombre,
+                  clienteActual.nombre,
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
-                if (cliente.telefono != null)
+                if (clienteActual.telefono != null)
                   Text(
-                    '📞 ${cliente.telefono}',
+                    '📞 ${clienteActual.telefono}',
                     style: const TextStyle(color: Colors.white70),
                   ),
               ],
@@ -75,7 +120,7 @@ class EstadoCuentaVista extends StatelessWidget {
           Container(
             width: double.infinity,
             padding: Dimensiones.paddingTodo,
-            color: cliente.tieneDeuda 
+            color: clienteActual.tieneDeuda
                 // ignore: deprecated_member_use
                 ? AppColores.error.withOpacity(0.1)
                 // ignore: deprecated_member_use
@@ -84,20 +129,20 @@ class EstadoCuentaVista extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  cliente.tieneDeuda ? 'DEUDA ACTUAL' : 'ESTADO',
+                  clienteActual.tieneDeuda ? 'DEUDA ACTUAL' : 'ESTADO',
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
-                  cliente.tieneDeuda 
-                      ? FormateadorMoneda.formatear(cliente.deudaTotal)
+                  clienteActual.tieneDeuda
+                      ? FormateadorMoneda.formatear(clienteActual.deudaTotal)
                       : 'SIN DEUDA ✓',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: cliente.tieneDeuda ? AppColores.error : AppColores.exito,
+                    color: clienteActual.tieneDeuda ? AppColores.error : AppColores.exito,
                   ),
                 ),
               ],
@@ -121,118 +166,110 @@ class EstadoCuentaVista extends StatelessWidget {
           
           // Lista de abonos
           Expanded(
-            child: StreamBuilder<List<AbonoModelo>>(
-              stream: ClientesServicio().obtenerAbonosCliente(cliente.id!),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const WidgetCargando(mensaje: 'Cargando historial...');
-                }
-                
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                
-                final abonos = snapshot.data ?? [];
-                
-                if (abonos.isEmpty) {
-                  return const EstadoVacio(
+            child: abonos.isEmpty
+                ? const EstadoVacio(
                     titulo: 'Sin abonos registrados',
                     subtitulo: 'Los pagos aparecerán aquí',
                     icono: Icons.payment_outlined,
-                  );
-                }
-                
-                // Calcular total abonado
-                final totalAbonado = abonos.fold<double>(
-                  0, (sum, a) => sum + a.monto,
-                );
-                
-                return Column(
-                  children: [
-                    // Resumen
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      // ignore: deprecated_member_use
-                      color: AppColores.primario.withOpacity(0.05),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  )
+                : Builder(
+                    builder: (context) {
+                      final totalAbonado = abonos.fold<double>(0, (sum, a) => sum + a.monto);
+
+                      return Column(
                         children: [
-                          Text('Total abonado (${abonos.length} pagos):'),
-                          Text(
-                            FormateadorMoneda.formatear(totalAbonado),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: AppColores.exito,
+                          // Resumen
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            // ignore: deprecated_member_use
+                            color: AppColores.primario.withOpacity(0.05),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Total abonado (${abonos.length} pagos):'),
+                                Text(
+                                  FormateadorMoneda.formatear(totalAbonado),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColores.exito,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Lista de abonos
+                          Expanded(
+                            child: ListView.builder(
+                              itemCount: abonos.length,
+                              itemBuilder: (context, index) {
+                                final abono = abonos[index];
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    // ignore: deprecated_member_use
+                                    backgroundColor: AppColores.exito.withOpacity(0.2),
+                                    child: const Icon(
+                                      Icons.arrow_downward,
+                                      color: AppColores.exito,
+                                    ),
+                                  ),
+                                  title: Text(
+                                    FormateadorMoneda.formatear(abono.monto),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColores.exito,
+                                    ),
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(FormateadorFecha.fechaHora(abono.fecha)),
+                                      if (abono.observaciones != null && abono.observaciones!.isNotEmpty)
+                                        Text(
+                                          abono.observaciones!,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            fontStyle: FontStyle.italic,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  trailing: Text(
+                                    FormateadorFecha.relativo(abono.fecha),
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColores.textoSecundario,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                    
-                    // Lista de abonos
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: abonos.length,
-                        itemBuilder: (context, index) {
-                          final abono = abonos[index];
-                          return ListTile(
-                            leading: CircleAvatar(
-                              // ignore: deprecated_member_use
-                              backgroundColor: AppColores.exito.withOpacity(0.2),
-                              child: const Icon(
-                                Icons.arrow_downward,
-                                color: AppColores.exito,
-                              ),
-                            ),
-                            title: Text(
-                              FormateadorMoneda.formatear(abono.monto),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: AppColores.exito,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(FormateadorFecha.fechaHora(abono.fecha)),
-                                if (abono.observaciones != null && abono.observaciones!.isNotEmpty)
-                                  Text(
-                                    abono.observaciones!,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            trailing: Text(
-                              FormateadorFecha.relativo(abono.fecha),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppColores.textoSecundario,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
-      
+
       // FAB para agregar abono
-      floatingActionButton: cliente.tieneDeuda
+      floatingActionButton: clienteActual.tieneDeuda
           ? FloatingActionButton.extended(
-              onPressed: () => RutasApp.ir(context, RutasApp.registrarAbono, args: cliente),
+              onPressed: () => RutasApp.ir(
+                context,
+                RutasApp.registrarAbono,
+                args: clienteActual,
+              ),
               icon: const Icon(Icons.payment),
               label: const Text('Registrar Abono'),
               backgroundColor: AppColores.exito,
             )
           : null,
+            );
+          },
+        );
+      },
     );
   }
 }
